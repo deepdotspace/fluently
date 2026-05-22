@@ -81,7 +81,7 @@ function DeckEditorModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
+        zIndex: 10000,
         padding: '20px'
       }}
       onClick={onCancel}

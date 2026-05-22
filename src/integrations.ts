@@ -10,8 +10,8 @@
  */
 
 export const integrations: Record<string, { billing: 'developer' | 'user' }> = {
-  openai: { billing: 'developer' },
-  anthropic: { billing: 'developer' },
-  speech: { billing: 'developer' },
-  elevenlabs: { billing: 'developer' },
+  openai: { billing: 'user' },
+  anthropic: { billing: 'user' },
+  speech: { billing: 'user' },
+  elevenlabs: { billing: 'user' },
 }

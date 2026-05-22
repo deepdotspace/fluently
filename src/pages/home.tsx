@@ -300,8 +300,11 @@ export default function FlashcardManager() {
         fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif',
         minHeight: '100vh',
         background: theme.gradient,
-        opacity: fadeIn ? 1 : 0,
-        transition: 'opacity 0.6s ease-in'
+        // `visibility` instead of `opacity` for the initial reveal:
+        // opacity < 1 creates a stacking context that traps the sticky nav,
+        // letting cards paint above it during the transition. visibility
+        // doesn't have that side effect.
+        visibility: fadeIn ? 'visible' : 'hidden'
       }}>
         <Navbar
           navTabs={navTabs}

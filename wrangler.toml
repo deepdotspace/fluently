@@ -1,4 +1,4 @@
-name = "fluently2"
+name = "fluently"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 main = "worker.ts"
@@ -7,27 +7,22 @@ main = "worker.ts"
 directory = "dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
-run_worker_first = ["/api/*", "/ws/*", "/internal/*"]
+run_worker_first = ["/api/*", "/ws/*", "/internal/*", "/v1/*"]
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["RecordRoom", "YjsRoom", "CanvasRoom", "MediaRoom", "PresenceRoom"]
+new_sqlite_classes = ["RecordRoom", "YjsRoom", "CanvasRoom", "PresenceRoom"]
 
 [durable_objects]
 bindings = [
   { name = "RECORD_ROOMS", class_name = "RecordRoom" },
   { name = "YJS_ROOMS", class_name = "YjsRoom" },
   { name = "CANVAS_ROOMS", class_name = "CanvasRoom" },
-  { name = "MEDIA_ROOMS", class_name = "MediaRoom" },
   { name = "PRESENCE_ROOMS", class_name = "PresenceRoom" },
 ]
 
-[[r2_buckets]]
-binding = "FILES"
-bucket_name = "fluently2-files"
-
 [vars]
-APP_NAME = "fluently2"
+APP_NAME = "fluently"
 
 [dev]
 port = 8780

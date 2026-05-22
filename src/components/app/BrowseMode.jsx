@@ -416,7 +416,7 @@ function BrowseMode({ cards, cardMutations, decks, selectedDeckId, cardTypes = {
           display: 'flex',
           alignItems: isMobile ? 'flex-end' : 'center',
           justifyContent: 'center',
-          zIndex: 1000,
+          zIndex: 10000,
           padding: isMobile ? '0' : '20px'
         }} onClick={() => setBulkAction(null)}>
           <div style={{

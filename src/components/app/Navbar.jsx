@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth, useUser, signOut } from 'deepspace';
 import ThemeSelector from './ThemeSelector';
@@ -22,6 +22,29 @@ const Navbar = ({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerClosing, setDrawerClosing] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userButtonRef = useRef(null);
+  const [userMenuPos, setUserMenuPos] = useState({ top: 0, right: 0 });
+
+  // Re-measure the user button when the menu opens or the window resizes,
+  // so the portaled dropdown stays anchored under the button.
+  useLayoutEffect(() => {
+    if (!userMenuOpen) return;
+    const updatePos = () => {
+      const rect = userButtonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setUserMenuPos({
+        top: rect.bottom + 6,
+        right: window.innerWidth - rect.right,
+      });
+    };
+    updatePos();
+    window.addEventListener('resize', updatePos);
+    window.addEventListener('scroll', updatePos, true);
+    return () => {
+      window.removeEventListener('resize', updatePos);
+      window.removeEventListener('scroll', updatePos, true);
+    };
+  }, [userMenuOpen]);
 
   const handleTabChange = useCallback((tabId) => {
     setActiveTab(tabId);
@@ -251,12 +274,23 @@ const Navbar = ({
 
   return (
     <>
-      <nav 
-        className="sticky top-0 z-[1000] w-full border-b backdrop-blur-xl"
-        style={{ 
-          background: 'rgba(255, 255, 255, 0.45)',
+      <nav
+        className="sticky top-0 w-full border-b"
+        style={{
+          // Robust against every stacking-context trap in the app:
+          //   • SOLID background (no rgba) — cards can't bleed through.
+          //   • NO backdrop-filter — the previous backdrop-blur created its
+          //     own stacking context that fought with GlassCard's backdrop
+          //     filters and the home wrapper's opacity transition. Removing
+          //     it eliminates that whole class of paint-order bugs.
+          //   • `isolation: isolate` pins the nav as a fresh stacking root.
+          //   • zIndex 9000 sits above all in-page elements but leaves room
+          //     for modals (10000+) and the profile dropdown (9999).
+          background: '#ffffff',
           borderColor: theme.cardBorder,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+          boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+          isolation: 'isolate',
+          zIndex: 9000
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -372,6 +406,7 @@ const Navbar = ({
                 {isSignedIn && user && (
                   <div style={{ position: 'relative' }}>
                     <button
+                      ref={userButtonRef}
                       onClick={() => setUserMenuOpen((prev) => !prev)}
                       style={{
                         display: 'flex',
@@ -416,56 +451,6 @@ const Navbar = ({
                         {user.name || user.email}
                       </span>
                     </button>
-                    {userMenuOpen && (
-                      <>
-                        <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setUserMenuOpen(false)} />
-                        <div style={{
-                          position: 'absolute',
-                          right: 0,
-                          top: 'calc(100% + 6px)',
-                          zIndex: 50,
-                          minWidth: '180px',
-                          borderRadius: '12px',
-                          border: `1px solid ${theme.cardBorder}`,
-                          background: 'rgba(255,255,255,0.98)',
-                          backdropFilter: 'blur(20px)',
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                          padding: '4px',
-                          overflow: 'hidden'
-                        }}>
-                          <div style={{
-                            padding: '10px 14px',
-                            borderBottom: `1px solid ${theme.cardBorder}40`
-                          }}>
-                            <div style={{ fontSize: '13px', fontWeight: '600', color: theme.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {user.name}
-                            </div>
-                            <div style={{ fontSize: '11px', color: theme.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {user.email}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => { setUserMenuOpen(false); signOut(); }}
-                            style={{
-                              width: '100%',
-                              textAlign: 'left',
-                              padding: '10px 14px',
-                              border: 'none',
-                              background: 'transparent',
-                              fontSize: '13px',
-                              color: theme.textSecondary,
-                              cursor: 'pointer',
-                              borderRadius: '8px',
-                              transition: 'background 0.1s'
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = `${theme.primary}08`; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                          >
-                            Sign out
-                          </button>
-                        </div>
-                      </>
-                    )}
                   </div>
                 )}
               </div>
@@ -475,6 +460,64 @@ const Navbar = ({
       </nav>
 
       {mobileDrawer}
+
+      {/* Profile dropdown — portaled to body so it floats above all page content
+          (cards on Create/Browse use backdrop-filter, which creates stacking
+          contexts that paint above the nav's own z-index). */}
+      {userMenuOpen && isSignedIn && user && createPortal(
+        <>
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+            onClick={() => setUserMenuOpen(false)}
+          />
+          <div style={{
+            position: 'fixed',
+            top: userMenuPos.top,
+            right: userMenuPos.right,
+            zIndex: 9999,
+            minWidth: '180px',
+            borderRadius: '12px',
+            border: `1px solid ${theme.cardBorder}`,
+            background: 'rgba(255,255,255,0.98)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            padding: '4px',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              padding: '10px 14px',
+              borderBottom: `1px solid ${theme.cardBorder}40`
+            }}>
+              <div style={{ fontSize: '13px', fontWeight: '600', color: theme.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.name}
+              </div>
+              <div style={{ fontSize: '11px', color: theme.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.email}
+              </div>
+            </div>
+            <button
+              onClick={() => { setUserMenuOpen(false); signOut(); }}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '10px 14px',
+                border: 'none',
+                background: 'transparent',
+                fontSize: '13px',
+                color: theme.textSecondary,
+                cursor: 'pointer',
+                borderRadius: '8px',
+                transition: 'background 0.1s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = `${theme.primary}08`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              Sign out
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
     </>
   );
 };
