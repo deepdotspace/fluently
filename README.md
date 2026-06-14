@@ -5,6 +5,8 @@ decks of cards, study the ones that are due, and rate how well you knew each
 answer. An SM-2 scheduler decides when to show each card again, so you spend your
 time on the material you're about to forget.
 
+**Live app: [fluently.app.space](https://fluently.app.space)**
+
 It's built on the [DeepSpace SDK](https://www.npmjs.com/package/deepspace) and
 runs on Cloudflare Workers + Durable Objects. Auth, the database, real-time sync,
 file storage, and the external-API proxy (LLM, text-to-speech, speech-to-text)
