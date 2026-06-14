@@ -1,5 +1,5 @@
 /**
- * App Worker — Hono-based Cloudflare Worker for DeepSpace apps.
+ * App Worker: Hono-based Cloudflare Worker for DeepSpace apps.
  *
  * Each app owns its RecordRoom DOs. Schemas are baked in at deploy time.
  *
@@ -10,7 +10,7 @@
  *   - AI chat (Vercel AI SDK + DeepSpace proxy)
  *   - Server actions (app-defined, bypass user RBAC)
  *   - Scoped R2 file storage
- *   - HMAC-authenticated cron
+ *   - Scheduled cron tasks (CronRoom DO)
  *   - Static asset serving with SPA fallback
  */
 
@@ -18,8 +18,6 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import {
   verifyJwt,
-  verifyInternalSignature,
-  buildInternalPayload,
   apiWorkerFetch,
   platformWorkerFetch,
   authWorkerFetch,
@@ -30,15 +28,16 @@ import {
   YjsRoom as YjsRoomBase,
   CanvasRoom as CanvasRoomBase,
   PresenceRoom as PresenceRoomBase,
+  CronRoom as CronRoomBase,
 } from 'deepspace/worker'
 import type { ActionTools, ActionResult, DOManifest, DOBindings } from 'deepspace/worker'
 import { actions } from './src/actions/index.js'
-import { handleCron } from './src/cron.js'
+import { tasks as cronTasks, runTask as runCronTask } from './src/cron.js'
 import { schemas } from './src/schemas.js'
 import { integrations } from './src/integrations.js'
 
 // =============================================================================
-// DO Manifest — declares all Durable Objects for dynamic deploy bindings
+// DO Manifest: declares all Durable Objects for dynamic deploy bindings
 // =============================================================================
 
 export const __DO_MANIFEST__ = [
@@ -46,10 +45,11 @@ export const __DO_MANIFEST__ = [
   { binding: 'YJS_ROOMS', className: 'YjsRoom', sqlite: true },
   { binding: 'CANVAS_ROOMS', className: 'CanvasRoom', sqlite: true },
   { binding: 'PRESENCE_ROOMS', className: 'PresenceRoom', sqlite: true },
+  { binding: 'CRON_ROOMS', className: 'CronRoom', sqlite: true },
 ] as const satisfies DOManifest
 
 // =============================================================================
-// Durable Objects — extend to customize behavior
+// Durable Objects: extend to customize behavior
 // =============================================================================
 
 export class RecordRoom extends RecordRoomBase {
@@ -61,6 +61,22 @@ export class RecordRoom extends RecordRoomBase {
 export class YjsRoom extends YjsRoomBase {}
 export class CanvasRoom extends CanvasRoomBase {}
 export class PresenceRoom extends PresenceRoomBase {}
+
+/**
+ * CronRoom: runs scheduled tasks defined in src/cron.ts. Tasks are
+ * registered at construction; the DO alarm fires `onTask(name)` on each
+ * task's interval / cron-expression match and records the run in its
+ * history table. Admin clients watch via `useCronMonitor('app:<APP_NAME>')`.
+ */
+export class CronRoom extends CronRoomBase<Env> {
+  constructor(state: DurableObjectState, env: Env) {
+    super(state, env, { tasks: cronTasks })
+  }
+
+  protected async onTask(taskName: string): Promise<void> {
+    await runCronTask(taskName, this.env)
+  }
+}
 
 // =============================================================================
 // Types
@@ -84,11 +100,10 @@ interface Env extends DOBindings<typeof __DO_MANIFEST__> {
   /**
    * Long-lived JWT minted for the app owner at deploy time. Server-side
    * code (actions, cron, AI helpers) uses this to authenticate to the
-   * api-worker for developer-billed calls — the owner is billed because
+   * api-worker for developer-billed calls. The owner is billed because
    * they are the JWT subject.
    */
   APP_OWNER_JWT: string
-  INTERNAL_STORAGE_HMAC_SECRET: string
 }
 
 type AppContext = { Bindings: Env }
@@ -277,6 +292,11 @@ app.get('/ws/presence/:scopeId', wsRoute(
   }),
 ))
 
+// Authenticated users get write access (trigger / pause / resume); anonymous
+// connections fall through with no role and are read-only viewers, which
+// CronRoom enforces. Used by the `useCronMonitor` admin hook.
+app.get('/ws/cron/:roomId', wsRoute((env) => env.CRON_ROOMS, () => ({ role: 'member' })))
+
 // ---------------------------------------------------------------------------
 // Server actions
 // ---------------------------------------------------------------------------
@@ -349,23 +369,6 @@ app.all('/api/files/*', async (c) => {
 })
 
 // ---------------------------------------------------------------------------
-// Internal cron (HMAC-authenticated)
-// ---------------------------------------------------------------------------
-
-app.post('/internal/cron', async (c) => {
-  const body = await c.req.text()
-  const valid = await verifyInternalSignature({
-    secret: c.env.INTERNAL_STORAGE_HMAC_SECRET,
-    payload: buildInternalPayload(body),
-    signature: c.req.header('x-internal-signature') ?? '',
-    timestamp: c.req.header('x-internal-timestamp') ?? '',
-  })
-  if (!valid) return c.json({ error: 'Forbidden' }, 403)
-  await handleCron(JSON.parse(body))
-  return c.json({ ok: true })
-})
-
-// ---------------------------------------------------------------------------
 // Static assets (SPA fallback)
 // ---------------------------------------------------------------------------
 
@@ -380,7 +383,7 @@ app.get('*', async (c) => {
 })
 
 // =============================================================================
-// Action Tools — route to app's own RecordRoom DO
+// Action Tools: route to app's own RecordRoom DO
 // =============================================================================
 
 function createActionTools(env: Env, userId: string, callerJwt: string): ActionTools {
@@ -412,7 +415,7 @@ function createActionTools(env: Env, userId: string, callerJwt: string): ActionT
     const billingMode = integrations[integrationName]?.billing ?? 'developer'
 
     // Use the owner JWT for developer-billed calls, the caller's JWT otherwise.
-    // The api-worker bills the JWT subject — no client-supplied override.
+    // The api-worker bills the JWT subject, no client-supplied override.
     const jwt = billingMode === 'developer' ? env.APP_OWNER_JWT : callerJwt
 
     const res = await apiWorkerFetch(env, `/api/integrations/${endpoint}`, {
