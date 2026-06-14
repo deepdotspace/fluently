@@ -795,9 +795,7 @@ function BrowseMode({ cards, cardMutations, decks, selectedDeckId, cardTypes = {
           <div
             className="filter-sidebar"
             style={{
-              background: theme.cardBg,
-              backdropFilter: `blur(${theme.backdropBlur})`,
-              WebkitBackdropFilter: `blur(${theme.backdropBlur})`,
+              background: 'rgba(255, 255, 255, 0.92)',
               borderRadius: isMobile ? '12px' : '16px',
               border: `1px solid ${theme.cardBorder}`,
               padding: isMobile ? '16px' : '24px',
@@ -1148,9 +1146,7 @@ function BrowseMode({ cards, cardMutations, decks, selectedDeckId, cardTypes = {
             </div>
           )}
           <div style={{
-            background: theme.cardBg,
-            backdropFilter: `blur(${theme.backdropBlur})`,
-            WebkitBackdropFilter: `blur(${theme.backdropBlur})`,
+            background: 'rgba(255, 255, 255, 0.92)',
             borderRadius: isMobile ? '12px' : '16px',
             border: `1px solid ${theme.cardBorder}`,
             overflow: 'hidden',
