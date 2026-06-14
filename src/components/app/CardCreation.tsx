@@ -141,9 +141,7 @@ function CardCreation({ decks, cards, cardMutations, deckMutations, selectedDeck
     return ({ children, style = {} }: { children?: React.ReactNode; style?: React.CSSProperties }) => (
       <div
         style={{
-          background: currentTheme.cardBg,
-          backdropFilter: `blur(${currentTheme.backdropBlur})`,
-          WebkitBackdropFilter: `blur(${currentTheme.backdropBlur})`,
+          background: 'rgba(255, 255, 255, 0.92)',
           border: `1px solid ${currentTheme.cardBorder}`,
           borderRadius: isMobile ? '16px' : '24px',
           padding: isMobile ? '16px' : '36px',
