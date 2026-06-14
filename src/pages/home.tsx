@@ -1,13 +1,33 @@
 import { useQuery, useMutations } from 'deepspace'
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import type {
+  Card,
+  MediaRecord,
+  Settings,
+  CardTypeMap,
+  ThemeMap,
+  ReviewSessionStats,
+  DailyProgress,
+  UserPreferencesData,
+  FlashcardSettingsData,
+  CardTypesData,
+  CustomThemesData,
+  DailyProgressData,
+  StoredDeck,
+  DeckMap,
+  CardMap,
+} from '../types';
 import Navbar from '../components/app/Navbar';
 import DecksList from '../components/app/DecksList';
-import CardCreation from '../components/app/CardCreation';
-import SettingsPanel from '../components/app/SettingsPanel';
-import ReviewMode from '../components/app/ReviewMode';
-import BrowseMode from '../components/app/BrowseMode';
-import ImportDecks from '../components/app/ImportDecks';
+
+// Heavy tab bodies are code-split so each tab's code is fetched on first visit
+// rather than bundled into the initial chunk.
+const CardCreation = lazy(() => import('../components/app/CardCreation'));
+const SettingsPanel = lazy(() => import('../components/app/SettingsPanel'));
+const ReviewMode = lazy(() => import('../components/app/ReviewMode'));
+const BrowseMode = lazy(() => import('../components/app/BrowseMode'));
+const ImportDecks = lazy(() => import('../components/app/ImportDecks'));
 import { getDefaultSettings, getDefaultCardTypes } from '../utils/storage';
 import { softThemes, applyTheme } from '../utils/themes';
 import { buildCardMap, getAllCards, getDueCards, getCardStats, getDailyProgress } from '../utils/cardStorage';
@@ -16,23 +36,22 @@ import useIsMobile from '../hooks/useIsMobile';
 
 export default function FlashcardManager() {
   const isMobile = useIsMobile();
-  const [lucideLoaded, setLucideLoaded] = useState(false);
   const [fadeIn, setFadeIn] = useState(false);
-  const [selectedDeckId, setSelectedDeckId] = useState(null);
-  const [viewingDeckId, setViewingDeckId] = useState(null);
-  const [reviewSessionStats, setReviewSessionStats] = useState(null);
+  const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
+  const [viewingDeckId, setViewingDeckId] = useState<string | null>(null);
+  const [reviewSessionStats, setReviewSessionStats] = useState<ReviewSessionStats | null>(null);
 
   // Local UI state (ephemeral, per-tab)
   const [activeTab, setActiveTab] = useState('import-decks');
-  const [selectedDeck, setSelectedDeck] = useState(null);
+  const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
 
   // Persisted user preferences (theme sync)
-  const { records: prefRecords, status: prefStatus } = useQuery('user-preferences');
+  const { records: prefRecords, status: prefStatus } = useQuery<UserPreferencesData>('user-preferences');
   const prefMutations = useMutations('user-preferences');
   const prefRecord = prefRecords[0] || null;
   const currentTheme = prefRecord?.data?.currentTheme || 'sky-serenity';
 
-  const setCurrentTheme = useCallback((theme) => {
+  const setCurrentTheme = useCallback((theme: string) => {
     const current = prefRecord?.data || { currentTheme: 'sky-serenity' };
     const updated = { ...current, currentTheme: theme };
     if (prefRecord) {
@@ -43,11 +62,11 @@ export default function FlashcardManager() {
   }, [prefRecord, prefMutations]);
 
   // Decks (shared, one record per deck)
-  const { records: deckRecords, status: decksStatus } = useQuery('decks');
+  const { records: deckRecords, status: decksStatus } = useQuery<StoredDeck>('decks');
   const deckMutations = useMutations('decks');
 
   const decks = useMemo(() => {
-    const map = {};
+    const map: DeckMap = {};
     deckRecords.forEach(r => {
       const id = r.data.id;
       if (id) map[id] = { ...r.data, recordId: r.recordId };
@@ -56,12 +75,12 @@ export default function FlashcardManager() {
   }, [deckRecords]);
 
   // Flashcard settings (singleton record holding config object)
-  const { records: settingsRecords, status: settingsStatus } = useQuery('flashcard-settings');
+  const { records: settingsRecords, status: settingsStatus } = useQuery<FlashcardSettingsData>('flashcard-settings');
   const settingsMutations = useMutations('flashcard-settings');
   const settingsRecord = settingsRecords[0] || null;
   const settings = settingsRecord?.data?.config || getDefaultSettings();
 
-  const updateSettings = useCallback((newSettings) => {
+  const updateSettings = useCallback((newSettings: Settings) => {
     if (settingsRecord) {
       settingsMutations.put(settingsRecord.recordId, { config: newSettings });
     } else {
@@ -70,12 +89,12 @@ export default function FlashcardManager() {
   }, [settingsRecord, settingsMutations]);
 
   // Card types (singleton record)
-  const { records: cardTypeRecords, status: cardTypesStatus } = useQuery('card-types');
+  const { records: cardTypeRecords, status: cardTypesStatus } = useQuery<CardTypesData>('card-types');
   const cardTypeMutations = useMutations('card-types');
   const cardTypeRecord = cardTypeRecords[0] || null;
   const cardTypes = cardTypeRecord?.data?.types || getDefaultCardTypes();
 
-  const updateCardTypes = useCallback((newTypes) => {
+  const updateCardTypes = useCallback((newTypes: CardTypeMap) => {
     if (cardTypeRecord) {
       cardTypeMutations.put(cardTypeRecord.recordId, { types: newTypes });
     } else {
@@ -84,12 +103,12 @@ export default function FlashcardManager() {
   }, [cardTypeRecord, cardTypeMutations]);
 
   // Custom themes (singleton record)
-  const { records: themeRecords } = useQuery('custom-themes');
+  const { records: themeRecords } = useQuery<CustomThemesData>('custom-themes');
   const themeMutations = useMutations('custom-themes');
   const themeRecord = themeRecords[0] || null;
   const customThemes = themeRecord?.data?.themes || {};
 
-  const updateCustomThemes = useCallback((newThemes) => {
+  const updateCustomThemes = useCallback((newThemes: ThemeMap) => {
     if (themeRecord) {
       themeMutations.put(themeRecord.recordId, { themes: newThemes });
     } else {
@@ -98,12 +117,12 @@ export default function FlashcardManager() {
   }, [themeRecord, themeMutations]);
 
   // Daily progress (per-user)
-  const { records: dailyProgressRecords } = useQuery('daily-progress');
+  const { records: dailyProgressRecords } = useQuery<DailyProgressData>('daily-progress');
   const dailyProgressMutations = useMutations('daily-progress');
   const dailyProgressRecord = dailyProgressRecords[0] || null;
   const dailyProgress = dailyProgressRecord?.data?.progress || null;
 
-  const updateDailyProgress = useCallback((newProgress) => {
+  const updateDailyProgress = useCallback((newProgress: DailyProgress) => {
     if (dailyProgressRecord) {
       dailyProgressMutations.put(dailyProgressRecord.recordId, {
         date: newProgress.date,
@@ -118,18 +137,18 @@ export default function FlashcardManager() {
   }, [dailyProgressRecord, dailyProgressMutations]);
 
   // Cards (one record per card)
-  const { records: cardRecords, status: cardsStatus } = useQuery('cards');
+  const { records: cardRecords, status: cardsStatus } = useQuery<Card>('cards');
   const cardMutations = useMutations('cards');
 
   // Media records
-  const { records: mediaRecords } = useQuery('media');
+  const { records: mediaRecords } = useQuery<MediaRecord>('media');
   const mediaMutations = useMutations('media');
 
   // Derived state
   const allCards = useMemo(() => buildCardMap(cardRecords), [cardRecords]);
 
   // Local cards state for immediate UI updates during review
-  const [cards, setCards] = useState({});
+  const [cards, setCards] = useState<CardMap>({});
   useEffect(() => { setCards(allCards); }, [allCards]);
 
   // Combine predefined + custom themes
@@ -150,31 +169,11 @@ export default function FlashcardManager() {
     }
   }, [cardTypesStatus, cardTypeRecord, cardTypeMutations]);
 
-  // Load Lucide Icons from CDN (components use window.lucide)
+  // Icons are bundled (lucide-react), so they render synchronously. Trigger the
+  // initial fade-in on mount.
   useEffect(() => {
-    if (!document.getElementById('lucide-script')) {
-      const lucideScript = document.createElement('script');
-      lucideScript.id = 'lucide-script';
-      lucideScript.src = 'https://unpkg.com/lucide@latest/dist/umd/lucide.js';
-      lucideScript.onload = () => {
-        window.dispatchEvent(new Event('lucide-loaded'));
-        setLucideLoaded(true);
-        setTimeout(() => setFadeIn(true), 50);
-      };
-      lucideScript.onerror = () => { console.error('Failed to load Lucide icons from CDN'); };
-      document.head.appendChild(lucideScript);
-    } else if (window.lucide) {
-      setLucideLoaded(true);
-      setTimeout(() => setFadeIn(true), 50);
-    } else {
-      // Script tag exists but not loaded yet
-      const handleLoaded = () => {
-        setLucideLoaded(true);
-        setTimeout(() => setFadeIn(true), 50);
-      };
-      window.addEventListener('lucide-loaded', handleLoaded);
-      return () => window.removeEventListener('lucide-loaded', handleLoaded);
-    }
+    const t = setTimeout(() => setFadeIn(true), 50);
+    return () => clearTimeout(t);
   }, []);
 
   // Theme application
@@ -205,7 +204,7 @@ export default function FlashcardManager() {
 
   const dueCards = useMemo(() => {
     const progress = getDailyProgress(dailyProgress, selectedDeckId);
-    const deckProgress = progress?.decks?.[selectedDeckId];
+    const deckProgress = progress?.decks?.[selectedDeckId!];
     return getDueCards(allCards, selectedDeckId, settings, deckProgress);
   }, [allCards, selectedDeckId, newCardsPerDay, maxReviewsPerDay, dailyProgress]);
 
@@ -257,14 +256,14 @@ export default function FlashcardManager() {
   }, [allCards, cards, selectedDeckId, newCardsPerDay, maxReviewsPerDay, reviewSessionStats, viewingDeckId, settings]);
 
   // Navigation
-  const handleDeckSelect = useCallback((deckId) => {
+  const handleDeckSelect = useCallback((deckId: string) => {
     setSelectedDeck(deckId);
     setSelectedDeckId(deckId);
     setViewingDeckId(deckId);
     setActiveTab('decks');
   }, []);
 
-  const handleTabChange = useCallback((tab) => {
+  const handleTabChange = useCallback((tab: string) => {
     setActiveTab(tab);
     setViewingDeckId(null);
   }, []);
@@ -278,7 +277,7 @@ export default function FlashcardManager() {
   ], []);
 
   // Loading state
-  const isReady = lucideLoaded && settings && cardsStatus === 'ready' && decksStatus === 'ready';
+  const isReady = settings && cardsStatus === 'ready' && decksStatus === 'ready';
 
   if (!isReady) {
     return (
@@ -319,6 +318,16 @@ export default function FlashcardManager() {
         />
 
         <div style={{ padding: isMobile ? '16px 12px 20px 12px' : '32px 40px 40px 40px' }}>
+          <Suspense fallback={
+            <div style={{
+              padding: '60px',
+              textAlign: 'center',
+              color: '#9CA3AF',
+              fontSize: '16px'
+            }}>
+              Loading...
+            </div>
+          }>
           {viewingDeckId ? (
             <div style={{ width: '100%', padding: isMobile ? '0' : '0 24px', boxSizing: 'border-box' }}>
               <ReviewMode
@@ -416,6 +425,7 @@ export default function FlashcardManager() {
               )}
             </>
           )}
+          </Suspense>
         </div>
       </div>
     </ThemeProvider>

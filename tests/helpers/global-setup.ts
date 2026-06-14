@@ -1,9 +1,9 @@
 /**
- * Playwright global setup — warms up external services before tests run.
+ * Playwright global setup: warms up external services before tests run.
  *
  * The DeepSpace auth worker (deployed at deepspace-auth.*.workers.dev) is
- * the same one used by every environment — there is no separate dev/local
- * auth worker. `npx deepspace dev` only runs Vite + the app worker
+ * the same one used by every environment (there is no separate dev/local
+ * auth worker). `npx deepspace dev` only runs Vite + the app worker
  * locally; auth requests are proxied through the app worker's /api/auth/*
  * route to the deployed auth worker.
  *
@@ -27,5 +27,5 @@ export default async function globalSetup() {
     }
     await new Promise(r => setTimeout(r, 2000))
   }
-  // Don't fail — tests will catch real issues
+  // Don't fail; tests will catch real issues
 }

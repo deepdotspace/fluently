@@ -5,7 +5,7 @@
 @source "../node_modules/deepspace/dist/**/*.js";
 
 /*
- * Theme configuration — shadcn/ui-compatible token system.
+ * Theme configuration: shadcn/ui-compatible token system.
  * Pick a palette and replace this block to retheme the app.
  */
 @theme {
@@ -122,7 +122,7 @@
 
 
 /*
- * Custom base styles — must be in @layer base so utility classes can override.
+ * Custom base styles: must be in @layer base so utility classes can override.
  */
 @layer base {
   html, body, #root {
@@ -187,7 +187,7 @@
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * Fluently App — custom styles merged from old widget
+ * Fluently App: custom styles merged from old widget
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Text selection for inputs */
@@ -343,4 +343,110 @@ input, textarea, [contenteditable="true"] {
 
 .mobile-drawer.closing {
   animation: drawerSlideOut 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Landing foundation: display font, tokens, scroll-snap world deck.
+ *
+ * These power the signed-out marketing landing only (src/components/landing).
+ * The signed-in app is unaffected: it keeps its own gradient + glass surfaces.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Clash Display';
+  src: url('/fonts/ClashDisplay-Variable.woff2') format('woff2');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-display: 'Clash Display', 'Inter Variable', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+
+  /* Fluently landing palette: light blue -> violet, one violet accent. */
+  --color-violet: #7c3aed;
+  --color-violet-deep: #6d28d9;
+  --color-deep-blue: #1e3a8a;
+}
+
+/* The snap deck: every world is one hard-cut screen. */
+.world-deck {
+  height: 100svh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+}
+.world {
+  height: 100svh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Halftone dot texture, ink-tinted per world via currentColor. Lower opacity
+ * than loud so it reads as a faint grain on light worlds, not heavy noise. */
+.halftone {
+  background-image: radial-gradient(circle at 1px 1px, currentColor 1px, transparent 1.6px);
+  background-size: 7px 7px;
+}
+
+/* Violet selection inside the landing only (scoped to the deck). */
+.world-deck ::selection {
+  background: #7c3aed;
+  color: #ffffff;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * Ambient background motion (additive, behind content). GPU-only: each loop
+ * animates transform + opacity, never layout. Element counts are capped and
+ * opacities low so FLUENTLY and the word-stream stay the star.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* DriftField: each glyph floats on a long, staggered translate+rotate loop.
+ * Per-glyph distance/duration/delay are set inline so the field reads organic.
+ * The custom properties default to a gentle drift if a glyph omits them. */
+@keyframes drift-glyph {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(var(--drift-r0, 0deg));
+  }
+  50% {
+    transform: translate3d(var(--drift-x, 24px), var(--drift-y, -28px), 0)
+      rotate(var(--drift-r1, 8deg));
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotate(var(--drift-r0, 0deg));
+  }
+}
+
+.drift-glyph {
+  animation: drift-glyph var(--drift-dur, 28s) ease-in-out var(--drift-delay, 0s)
+    infinite;
+  will-change: transform;
+}
+
+/* DailyLoop: a single node orbits a faint ring. The wrapper rotates a full
+ * turn; the ring itself is static. Linear + infinite = a calm, even orbit. */
+@keyframes daily-loop-orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.daily-loop-orbit {
+  animation: daily-loop-orbit var(--orbit-dur, 20s) linear infinite;
+  will-change: transform;
+}
+
+/* Reduced motion: render everything, animate nothing. The fields still fill
+ * the empty space; they just hold still. */
+@media (prefers-reduced-motion: reduce) {
+  .drift-glyph,
+  .daily-loop-orbit {
+    animation: none;
+  }
 }

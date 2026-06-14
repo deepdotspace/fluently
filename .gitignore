@@ -6,3 +6,9 @@ dist
 *.tgz
 test-results
 playwright-report
+
+# temporary OSS-prep coordination (never ship)
+_oss-prep/
+
+# followup task coordination (never ship)
+_followup/

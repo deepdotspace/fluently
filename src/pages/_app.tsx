@@ -1,16 +1,20 @@
 /**
- * App — global providers + shell.
+ * App: global providers + shell.
  *
  * Generouted renders this around all routes.
  * Providers → auth gate → page outlet.
  */
 
-import { Suspense, type ReactNode } from 'react'
+import { Suspense, lazy, type ReactNode } from 'react'
 import { Outlet } from 'react-router-dom'
-import { DeepSpaceAuthProvider, useAuth, AuthOverlay } from 'deepspace'
+import { DeepSpaceAuthProvider, useAuth } from 'deepspace'
 import { RecordProvider, RecordScope } from 'deepspace'
 import { APP_NAME, SCOPE_ID } from '../constants'
 import { schemas } from '../schemas'
+
+// Public, signed-out marketing landing. Lazy-loaded so `motion` and the entire
+// landing live in their own chunk and never enter the signed-in app bundle.
+const Landing = lazy(() => import('../components/landing/Landing'))
 
 export default function App() {
   return (
@@ -42,7 +46,13 @@ function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (!isSignedIn) {
-    return <AuthOverlay />
+    // Signed-out visitors get the public landing, not the bare auth overlay.
+    // The landing's CTAs open the sign-in overlay from inside it.
+    return (
+      <Suspense fallback={<div style={{ minHeight: '100svh', background: '#eff6ff' }} />}>
+        <Landing />
+      </Suspense>
+    )
   }
 
   return (
