@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Fluently">
+  <defs>
+    <linearGradient id="fl-tile" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Tile background -->
+  <rect width="64" height="64" rx="14" fill="url(#fl-tile)"/>
+
+  <!-- Back flashcard peeking behind (stack motif) -->
+  <rect x="21" y="11" width="32" height="26" rx="6" fill="#ffffff" opacity="0.32"
+        transform="rotate(9 37 24)"/>
+
+  <!-- Front card doubling as a speech bubble (flashcard + language/speech) -->
+  <path d="M15 15 h34 a7 7 0 0 1 7 7 v13 a7 7 0 0 1 -7 7 H27 l-6 8 v-8 h-6 a7 7 0 0 1 -7 -7 V22 a7 7 0 0 1 7 -7 Z"
+        fill="#ffffff"/>
+
+  <!-- Card content: term pill + translation line -->
+  <rect x="22" y="24" width="22" height="5.5" rx="2.75" fill="#6d28d9"/>
+  <rect x="22" y="33.5" width="15" height="4.5" rx="2.25" fill="#818cf8"/>
+</svg>

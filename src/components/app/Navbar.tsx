@@ -129,7 +129,7 @@ const Navbar = ({
             style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
             onClick={() => handleTabChange('decks')}
           >
-            <LucideIcon name="sparkles" size={22} color={theme.primary} />
+            <img src="/favicon.svg" alt="" width={22} height={22} style={{ display: 'block' }} />
             <span style={{
               fontSize: '16px',
               fontWeight: '800',
@@ -349,7 +349,7 @@ const Navbar = ({
                 aria-label="Fluently, view the landing page"
               >
                 <span className="text-2xl transition-transform group-hover:scale-110 duration-300">
-                  <LucideIcon name="sparkles" size={24} color={theme.primary} />
+                  <img src="/favicon.svg" alt="" width={24} height={24} style={{ display: 'block' }} />
                 </span>
                 <span
                   className="text-lg font-black uppercase tracking-[2px]"
@@ -366,7 +366,7 @@ const Navbar = ({
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
                 onClick={() => handleTabChange('decks')}
               >
-                <LucideIcon name="sparkles" size={20} color={theme.primary} />
+                <img src="/favicon.svg" alt="" width={20} height={20} style={{ display: 'block' }} />
                 <span style={{
                   fontSize: '15px',
                   fontWeight: '800',
