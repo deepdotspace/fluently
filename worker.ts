@@ -96,6 +96,7 @@ interface Env extends DOBindings<typeof __DO_MANIFEST__> {
   AUTH_JWT_ISSUER: string
   AUTH_WORKER_URL: string
   APP_NAME: string
+  DEEPSPACE_APP_ID: string
   OWNER_USER_ID: string
   /**
    * Long-lived JWT minted for the app owner at deploy time. Server-side
@@ -339,7 +340,7 @@ app.all('/api/files/*', async (c) => {
   // unauthenticated browser read another user's files.
   headers.delete('x-user-id')
   headers.set('x-app-identity-token', c.env.APP_IDENTITY_TOKEN)
-  headers.set('x-app-name', c.env.APP_NAME)
+  headers.set('x-app-id', c.env.DEEPSPACE_APP_ID)
   if (userId) headers.set('x-user-id', userId)
 
   const resp = await platformWorkerFetch(

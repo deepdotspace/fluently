@@ -27,7 +27,7 @@ bindings = [
 ]
 
 [vars]
-DEEPSPACE_APP_ID = "fluently"
+DEEPSPACE_APP_ID = "app_01KZ4F4FYBR7QZD3JNQJZ00CJG"
 APP_NAME = "fluently"
 
 [dev]
