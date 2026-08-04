@@ -9,7 +9,7 @@ import { Suspense, lazy, type ReactNode } from 'react'
 import { Outlet } from 'react-router-dom'
 import { DeepSpaceAuthProvider, useAuth } from 'deepspace'
 import { RecordProvider, RecordScope } from 'deepspace'
-import { APP_NAME, SCOPE_ID } from '../constants'
+import { SCOPE_ID } from '../constants'
 import { schemas } from '../schemas'
 
 // Public, signed-out marketing landing. Lazy-loaded so `motion` and the entire
@@ -57,7 +57,7 @@ function AuthGate({ children }: { children: ReactNode }) {
 
   return (
     <RecordProvider>
-      <RecordScope roomId={SCOPE_ID} schemas={schemas} appId={APP_NAME}>
+      <RecordScope roomId={SCOPE_ID} schemas={schemas}>
         {children}
       </RecordScope>
     </RecordProvider>
